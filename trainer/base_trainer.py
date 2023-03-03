@@ -255,7 +255,7 @@ class BaseTrainer:
         }, epoch)
 
         print('pesq_clean_noisy: ', np.mean(pesq_clean_noisy), 'stoi_clean_noisy: ', np.mean(stoi_clean_noisy))
-        print(np.mean(pesq_clean_denoise), np.mean(stoi_clean_denoise))
+        print('pesq_clean_denoise', np.mean(pesq_clean_denoise), 'stoi_clean_denoise', np.mean(stoi_clean_denoise))
 
         return (self._transform_pesq_range(np.mean(pesq_clean_denoise)) + np.mean(stoi_clean_denoise)) / 2
 
