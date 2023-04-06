@@ -29,6 +29,9 @@ def inference_wrapper(dataloader, model, device, inference_args, enhanced_dir):
     else:
         sample_rate = 16000
 
+    if "wiener_filter" in inference_args:
+        wiener_filter = inference_args["wiener_filter"]
+
     for noisy, clean, name in tqdm(dataloader, desc="Inference"):
         assert len(name) == 1, "The batch size of inference stage must 1."
         name = name[0]
@@ -38,7 +41,11 @@ def inference_wrapper(dataloader, model, device, inference_args, enhanced_dir):
             continue
 
         noisy = noisy.to(device)
-        enhanced = model.inference(noisy)
+
+        if wiener_filter:
+            enhanced = model.inference_wiener(noisy)
+        else:
+            enhanced = model.inference(noisy)
 
         noisy = noisy.squeeze().cpu().numpy()
         enhanced = enhanced.squeeze().cpu().numpy()
@@ -72,12 +79,13 @@ def inference_wrapper(dataloader, model, device, inference_args, enhanced_dir):
         #sf.write(enhanced_dir / f"{name}_before.wav", noisy, samplerate=sample_rate)
         #sf.write(enhanced_dir / f"{name}_clean.wav", clean, samplerate=sample_rate)
 
-
+    
     df = pd.DataFrame(result)
     print("NOISY PESQ: {:.4f} ± {:.4f}".format(*mean_std(df["noisy_pesq"].to_numpy())))
     print("NOISY STOI: {:.4f} ± {:.4f}".format(*mean_std(df["noisy_stoi"].to_numpy())))
     print("ENHANCED PESQ: {:.4f} ± {:.4f}".format(*mean_std(df["enhanced_pesq"].to_numpy())))
     print("ENHANCED STOI: {:.4f} ± {:.4f}".format(*mean_std(df["enhanced_stoi"].to_numpy())))
+    
     df.to_csv(os.path.join(enhanced_dir, "_results.csv"), index=False)
 
 

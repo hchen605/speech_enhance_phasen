@@ -16,6 +16,7 @@
         "module": "inferencer.inferencer_with_reference",
         "main": "Inferencer",
         "sr": 16000,
-        "inference_type": "full_band_no_truncation"
+        "inference_type": "full_band_no_truncation",
+        "wiener_filter": true
     }
 }

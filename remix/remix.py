@@ -9,7 +9,7 @@ sys.path.append('/home/hsinhung/speech_enhance_phasen/')
 from util.metrics import STOI, PESQ, SI_SDR
 
 
-enhanced_dir = "/home/hsinhung/speech_enhance_phasen/output/phasen_vb/enhanced/"
+enhanced_dir = "/home/hsinhung/speech_enhance_phasen/output/phasen_vb_wiener_alpha/enhanced/"
 clean_dir = "/home/koredata/hsinhung/speech/vb_demand/clean_testset_wav/"
 noisy_dir = "/home/koredata/hsinhung/speech/vb_demand/noisy_testset_wav/"
 
@@ -22,7 +22,7 @@ noisy_sdr = []
 enhanced_sdr = []
 
 remix_ratio_noise = 0.8
-remix_ratio_speech = 1
+remix_ratio_speech = 2
 cnt = 0
 #for path in enhanced_dir:
 for (dirpath, dirnames, filenames) in os.walk(enhanced_dir):
@@ -42,16 +42,16 @@ for (dirpath, dirnames, filenames) in os.walk(enhanced_dir):
         remix = noisy + remix_ratio_speech * enhanced - remix_ratio_noise * noise
         remix = remix / np.abs(remix).max()
 
-        noisy_sdr_ = SI_SDR(clean, noisy)
-        enhanced_sdr_ = SI_SDR(clean, enhanced)
+        #noisy_sdr_ = SI_SDR(clean, noisy)
+        #enhanced_sdr_ = SI_SDR(clean, enhanced)
         remix_pesq_ = PESQ(clean, remix)
         remix_stoi_ = STOI(clean, remix)
         remix_sdr_ = SI_SDR(clean, remix)
         remix_pesq.append(remix_pesq_)
         remix_stoi.append(remix_stoi_)
         remix_sdr.append(remix_sdr_)
-        noisy_sdr.append(noisy_sdr_)
-        enhanced_sdr.append(enhanced_sdr_)
+        #noisy_sdr.append(noisy_sdr_)
+        #enhanced_sdr.append(enhanced_sdr_)
 
         print(f,':' )
         print('PESQ enhanced: ', PESQ(clean, enhanced), 'PESQ remix: ', remix_pesq_)
@@ -82,4 +82,29 @@ remix_ratio_speech = 0.8
 remix PESQ:  2.7826 ± 0.6045
 remix STOI:  0.9422 ± 0.0560
 remix SI_SDR:  18.4122 ± 3.8514
+
+remix_ratio_noise = 0.8
+remix_ratio_speech = 1
+remix PESQ:  2.7902 ± 0.6026
+remix STOI:  0.9423 ± 0.0559
+remix SI_SDR:  18.4706 ± 3.8459
+
+remix_ratio_noise = 0.8
+remix_ratio_speech = 1.2
+remix PESQ:  2.7953 ± 0.6025
+remix STOI:  0.9424 ± 0.0559
+remix SI_SDR:  18.5153 ± 3.8425
+
+remix_ratio_noise = 0.8
+remix_ratio_speech = 2
+remix PESQ:  2.8080 ± 0.6047
+remix STOI:  0.9426 ± 0.0558
+remix SI_SDR:  18.6208 ± 3.8373
+
+wiener 1.1
+remix_ratio_noise = 0.8
+remix_ratio_speech = 2
+remix PESQ:  2.8242 ± 0.6014
+remix STOI:  0.9423 ± 0.0561
+remix SI_SDR:  18.7350 ± 3.8360
 '''
