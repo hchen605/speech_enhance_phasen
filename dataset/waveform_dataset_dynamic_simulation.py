@@ -90,11 +90,11 @@ class Dataset(data.Dataset):
                 clean = clean[:self.max_length]
 
         if noisy_path == clean_path:
-            random_value = random.random()
-            if random_value < 0.8:
-                noisy = self.additive_noise_simulation(noisy)
-            if random_value > 0.5:
-                noisy, clean = self.reverberant_noise_simulation(noisy, clean)
+            #random_value = random.random()
+            #if random_value < 0.8:
+            noisy = self.additive_noise_simulation(noisy)
+            #if random_value > 0.5:
+            #    noisy, clean = self.reverberant_noise_simulation(noisy, clean)
         else:
             random_value = random.random()
             if random_value < 0.5:

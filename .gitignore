@@ -135,3 +135,9 @@ Experiments/phasen_vb/checkpoints/*
 #output
 output/*
 output/enhanced/*
+
+#remix
+remix/log*
+remix/snr*
+remix/vb*
+remix/awgn*

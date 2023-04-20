@@ -6,7 +6,7 @@ import pandas as pd
 
 f_train = open("train_vb.txt", "w")
 f_val = open("val_vb.txt", "w")
-f_test = open("test_vb.txt", "w")
+f_test = open("test_vb_awgn_snr_20.txt", "w")
 
 
 
@@ -14,8 +14,8 @@ train_clean_dir = ['/home/koredata/hsinhung/speech/vb_demand/clean_trainset_28sp
 train_noisy_dir = ['/home/koredata/hsinhung/speech/vb_demand/noisy_trainset_28spk_wav']
 test_clean_dir = ['/home/koredata/hsinhung/speech/vb_demand/clean_testset_wav']
 test_noisy_dir = ['/home/koredata/hsinhung/speech/vb_demand/noisy_testset_wav']
-
-
+test_awgn_dir = ['/home/koredata/hsinhung/speech/vb_demand/testset_awgn/snr_20']
+'''
 for path in train_noisy_dir:
     for (dirpath, dirnames, filenames) in os.walk(path):
         print(dirpath)
@@ -43,8 +43,9 @@ for path in train_noisy_dir:
                 f_train.write('\n')
           
 print('==== train set ready ====')
+'''
 
-for path in test_noisy_dir:
+for path in test_awgn_dir:
     for (dirpath, dirnames, filenames) in os.walk(path):
         print(dirpath)
         #print(len(filenames))
@@ -52,11 +53,11 @@ for path in test_noisy_dir:
             if not f.endswith((".WAV", ".wav")):
                 continue
 
-            clean_path = dirpath
-            clean_path = clean_path.replace("noisy", "clean")
+            #clean_path = dirpath
+            #clean_path = clean_path.replace("noisy", "clean")
             
             noisy_path = os.path.join(dirpath, f)
-            clean_path = os.path.join(clean_path, f)
+            clean_path = os.path.join(test_clean_dir[0], f)
             
             f_test.write(noisy_path)
             f_test.write(' ')

@@ -308,15 +308,16 @@ class PHASEN(Base_SE_Model):
             torch.sqrt(torch.abs(phase[:, 0]) ** 2 + torch.abs(phase[:, 1]) ** 2)
             + 1e-8
         ).unsqueeze(1)
-
-        # wiener filter
+        
+        # wiener filter 1
         alpha = 1.05
         #enhanced_amp = torch.abs(enhanced_mag_spec)
         #noisy_amp = torch.abs(noisy_mag_spec)
+        noisy_mag_spec = torch.add(noisy_mag_spec, 0.001)
         gain = torch.pow(torch.div(enhanced_mag_spec, noisy_mag_spec), alpha)
         #gain = torch.div(torch.pow(enhanced_mag_spec, alpha), (torch.pow(enhanced_mag_spec, alpha) + torch.pow(noise_mag_spec, alpha)))
         #print(torch.nonzero(torch.isnan(gain)))
-        gain = torch.nan_to_num(gain)
+        #gain = torch.nan_to_num(gain)
         enhanced_mag_spec = torch.mul(noisy_mag_spec, gain) #[1, 1, 257, T]
         #
 
@@ -328,5 +329,19 @@ class PHASEN(Base_SE_Model):
         
         #
         enhanced_wav = self.istft(complex_enhanced_spec, length=noisy_wav.size(1))
+        
+        '''
+        ## wiener filter 2
+        noise_psd = torch.mean(noisy_mag_spec - enhanced_mag_spec, 3, True)
+        clean_psd = torch.mean(enhanced_mag_spec, 3, True)
+        wiener_filter = torch.divide(clean_psd, (clean_psd + noise_psd))
+        #filtered_data = signal.lfilter(wiener_filter, 1, noisy_data)
+        enhanced_mag_spec = torch.mul(noisy_mag_spec, wiener_filter)
+        complex_enhanced_spec = enhanced_mag_spec * phase #[1, 2, 257, T]
+        complex_enhanced_spec = torch.complex(real=complex_enhanced_spec[:, 0], imag=complex_enhanced_spec[:, 1])#[1, 257, T]
+        
+        #
+        enhanced_wav = self.istft(complex_enhanced_spec, length=noisy_wav.size(1))
+        '''
 
         return enhanced_wav

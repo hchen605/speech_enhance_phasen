@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import librosa
+import soundfile as sf
 import os
 import sys
 print(sys.path)
@@ -9,9 +10,12 @@ sys.path.append('/home/hsinhung/speech_enhance_phasen/')
 from util.metrics import STOI, PESQ, SI_SDR
 
 
-enhanced_dir = "/home/hsinhung/speech_enhance_phasen/output/phasen_vb_wiener_alpha/enhanced/"
+#enhanced_dir = "/home/hsinhung/speech_enhance_phasen/output/phasen_vb_wiener_1p05_epsilon/enhanced/"
+enhanced_dir = "/home/hsinhung/speech_enhance_phasen/output/phasen_vb_awgn_snr_20_wiener_1p05_epsilon/enhanced/"
 clean_dir = "/home/koredata/hsinhung/speech/vb_demand/clean_testset_wav/"
 noisy_dir = "/home/koredata/hsinhung/speech/vb_demand/noisy_testset_wav/"
+#remix_dir = "/home/hsinhung/speech_enhance_phasen/remix/vb_wiener_s1_n0p8"
+remix_dir = "/home/hsinhung/speech_enhance_phasen/remix/awgn_snr_20"
 
 sample_rate = 16000
 
@@ -21,9 +25,13 @@ remix_sdr = []
 noisy_sdr = []
 enhanced_sdr = []
 
-remix_ratio_noise = 0.8
-remix_ratio_speech = 2
+remix_ratio_noise = 0.5
+remix_ratio_speech = 0.2
 cnt = 0
+
+if not os.path.exists(remix_dir):
+    os.makedirs(remix_dir)
+
 #for path in enhanced_dir:
 for (dirpath, dirnames, filenames) in os.walk(enhanced_dir):
     print(dirpath)
@@ -42,6 +50,7 @@ for (dirpath, dirnames, filenames) in os.walk(enhanced_dir):
         remix = noisy + remix_ratio_speech * enhanced - remix_ratio_noise * noise
         remix = remix / np.abs(remix).max()
 
+        sf.write(remix_dir+'/'+f[:-10]+"_after_remix.wav", enhanced, samplerate=sample_rate)
         #noisy_sdr_ = SI_SDR(clean, noisy)
         #enhanced_sdr_ = SI_SDR(clean, enhanced)
         remix_pesq_ = PESQ(clean, remix)
