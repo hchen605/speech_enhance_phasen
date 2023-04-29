@@ -4,6 +4,7 @@ yxhu@ASLP-NPU in Sogou inc.
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from scipy import signal
 
 from model.base_SE_model import Base_SE_Model
 
@@ -308,7 +309,7 @@ class PHASEN(Base_SE_Model):
             torch.sqrt(torch.abs(phase[:, 0]) ** 2 + torch.abs(phase[:, 1]) ** 2)
             + 1e-8
         ).unsqueeze(1)
-        
+        '''
         # wiener filter 1
         alpha = 1.05
         #enhanced_amp = torch.abs(enhanced_mag_spec)
@@ -329,7 +330,7 @@ class PHASEN(Base_SE_Model):
         
         #
         enhanced_wav = self.istft(complex_enhanced_spec, length=noisy_wav.size(1))
-        
+        '''
         '''
         ## wiener filter 2
         noise_psd = torch.mean(noisy_mag_spec - enhanced_mag_spec, 3, True)
@@ -343,5 +344,21 @@ class PHASEN(Base_SE_Model):
         #
         enhanced_wav = self.istft(complex_enhanced_spec, length=noisy_wav.size(1))
         '''
+        # blind wiener filter
 
-        return enhanced_wav
+        noisy_spec = torch.stft(noisy_wav, n_fft=2048, hop_length=512, return_complex=True)
+        #noisy_spec = self.stft(noisy_wav)
+        noisy_psd = torch.mean(torch.abs(noisy_spec) ** 2, dim=2)
+
+        wiener_filter = torch.div(noisy_psd, (noisy_psd + torch.mean(noisy_psd)))
+        #print('wiener_filter size: ', wiener_filter.size())
+        #print('noisy_spec size: ', noisy_spec.size())
+        #print('noisy_psd size: ', noisy_psd.size())
+        wiener_filter = wiener_filter.unsqueeze(-1)
+        wiener_filter = wiener_filter.repeat(1, 1, noisy_spec.size(dim=2))
+        #print('wiener_filter size: ', wiener_filter.size())
+        filtered_spec = torch.mul(wiener_filter, noisy_spec)
+        filtered_data = torch.istft(filtered_spec, n_fft=2048, hop_length=512, length=noisy_wav.size(1))
+
+
+        return filtered_data
