@@ -8,6 +8,8 @@ from scipy import signal
 
 from model.base_SE_model import Base_SE_Model
 
+import numpy as np
+
 
 class FTB(nn.Module):
     def __init__(self, input_dim=257, in_channel=9, r_channel=5):
@@ -300,65 +302,34 @@ class PHASEN(Base_SE_Model):
         return enhanced_wav
 
         
-    def inference_wiener(self, noisy_wav):
-        noisy_mag_spec, masking_spec, phase = self._forward(noisy_wav)
-        enhanced_mag_spec = noisy_mag_spec * masking_spec #[1, 1, 257, T]
-        noise_mag_spec = noisy_mag_spec - enhanced_mag_spec
+    def inference_wiener(self, noisy_wav, N=30000):
+        enhanced_wav = self.inference(noisy_wav)
+        corr = cross_correlation(noisy_wav, noisy_wav, N=N)
 
-        phase = phase / (
-            torch.sqrt(torch.abs(phase[:, 0]) ** 2 + torch.abs(phase[:, 1]) ** 2)
-            + 1e-8
-        ).unsqueeze(1)
-        '''
-        # wiener filter 1
-        alpha = 1.05
-        #enhanced_amp = torch.abs(enhanced_mag_spec)
-        #noisy_amp = torch.abs(noisy_mag_spec)
-        noisy_mag_spec = torch.add(noisy_mag_spec, 0.001)
-        gain = torch.pow(torch.div(enhanced_mag_spec, noisy_mag_spec), alpha)
-        #gain = torch.div(torch.pow(enhanced_mag_spec, alpha), (torch.pow(enhanced_mag_spec, alpha) + torch.pow(noise_mag_spec, alpha)))
-        #print(torch.nonzero(torch.isnan(gain)))
-        #gain = torch.nan_to_num(gain)
-        enhanced_mag_spec = torch.mul(noisy_mag_spec, gain) #[1, 1, 257, T]
-        #
+        i = torch.arange(N)
+        j = torch.arange(0, -N, -1)
+        ii, jj = torch.meshgrid(i, j)
+        indices = (ii + jj).abs()
+        R = corr[indices]
+        r = cross_correlation(noisy_wav, enhanced_wav, N=N)
 
-        complex_enhanced_spec = enhanced_mag_spec * phase #[1, 2, 257, T]
-        #complex_noisy_spec = noisy_mag_spec * phase #[1, 2, 257, T]
+        wiener_filter = torch.linalg.inv(R) @ r
+        enhanced_wav_estimated = torch.nn.functional.conv1d(noisy_wav.unsqueeze(1), 
+                wiener_filter.unsqueeze(0).unsqueeze(1), padding='same').squeeze(1)
+        return enhanced_wav_estimated
 
-        complex_enhanced_spec = torch.complex(real=complex_enhanced_spec[:, 0], imag=complex_enhanced_spec[:, 1])#[1, 257, T]
-        #complex_noisy_spec = torch.complex(real=complex_noisy_spec[:, 0], imag=complex_noisy_spec[:, 1]) #[1, 257, T]
-        
-        #
-        enhanced_wav = self.istft(complex_enhanced_spec, length=noisy_wav.size(1))
-        '''
-        '''
-        ## wiener filter 2
-        noise_psd = torch.mean(noisy_mag_spec - enhanced_mag_spec, 3, True)
-        clean_psd = torch.mean(enhanced_mag_spec, 3, True)
-        wiener_filter = torch.divide(clean_psd, (clean_psd + noise_psd))
-        #filtered_data = signal.lfilter(wiener_filter, 1, noisy_data)
-        enhanced_mag_spec = torch.mul(noisy_mag_spec, wiener_filter)
-        complex_enhanced_spec = enhanced_mag_spec * phase #[1, 2, 257, T]
-        complex_enhanced_spec = torch.complex(real=complex_enhanced_spec[:, 0], imag=complex_enhanced_spec[:, 1])#[1, 257, T]
-        
-        #
-        enhanced_wav = self.istft(complex_enhanced_spec, length=noisy_wav.size(1))
-        '''
-        # blind wiener filter
+def cross_correlation(X, Y, N=100):
+    X = X.squeeze()
+    Y = Y.squeeze()
 
-        noisy_spec = torch.stft(noisy_wav, n_fft=2048, hop_length=512, return_complex=True)
-        #noisy_spec = self.stft(noisy_wav)
-        noisy_psd = torch.mean(torch.abs(noisy_spec) ** 2, dim=2)
+    X = torch.nn.functional.pad(X, (N - 1, len(Y) - len(X)))
+    Y = torch.nn.functional.pad(Y, (N - 1, len(X) - len(Y)))
+    M = len(X) - N + 1
 
-        wiener_filter = torch.div(noisy_psd, (noisy_psd + torch.mean(noisy_psd)))
-        #print('wiener_filter size: ', wiener_filter.size())
-        #print('noisy_spec size: ', noisy_spec.size())
-        #print('noisy_psd size: ', noisy_psd.size())
-        wiener_filter = wiener_filter.unsqueeze(-1)
-        wiener_filter = wiener_filter.repeat(1, 1, noisy_spec.size(dim=2))
-        #print('wiener_filter size: ', wiener_filter.size())
-        filtered_spec = torch.mul(wiener_filter, noisy_spec)
-        filtered_data = torch.istft(filtered_spec, n_fft=2048, hop_length=512, length=noisy_wav.size(1))
+    n = torch.arange(N - 1, -1, -1)
+    m = torch.arange(M)
+    nn, mm = torch.meshgrid(n, m)
+    indices = nn+mm
 
-
-        return filtered_data
+    Y_shift = Y[indices]
+    return Y_shift @ X[-M:] / M
